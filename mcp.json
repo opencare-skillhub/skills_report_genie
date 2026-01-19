@@ -1,0 +1,61 @@
+{
+    "mcpServers": {
+        "Quickchart-MCP-Server": {
+            "type": "sse",
+            "url": "https://mcp-api.tencent-cloud.com/sse/d20f0f73a45f1bc6"
+        },
+        "metaso": {
+      "url": "https://metaso.cn/api/mcp",
+      "headers": {
+        "Authorization": "Bearer mk-8477E39D1CE97AAB3432EED9306E02F2"
+      }
+    },
+            "mcp-pubmed-llm-server": {
+                "command": "npx",
+                "args": [
+                    "mcp-pubmed-llm-server"
+                ]
+            },
+            "pubmed-data-server": {
+      "command": "node",
+      "args": [
+        "/Users/qinxiaoqiang/Downloads/mcp-pubmed-server-pancrpal/src/index.js"
+      ],
+      "cwd": "/Users/qinxiaoqiang/Downloads/mcp-pubmed-server-pancrpal",
+      "env": {
+        "PUBMED_API_KEY": "9c1f5cb4ff62971cf4b383e944913da50808",
+        "PUBMED_EMAIL": "qinxiaoqiang@gmail.com",
+        "ABSTRACT_MODE": "deep",
+        "FULLTEXT_MODE": "enabled"
+      }
+    },
+                "memos-api-mcp": {
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@memtensor/memos-api-mcp@latest"
+                    ],
+                    "env": {
+                        "MEMOS_API_KEY": "pg-XTF8X0lKOJVUpewkyvdL1GwR1T7MebYrgzJ3zhWo",
+                        "MEMOS_CHANNEL": "MEMOS",
+                        "MEMOS_USER_ID": "sam.qin@xiaoyibao.com.cn"
+                    }
+                },
+                "searxng-simple-mcp": {
+                    "command": "uvx",
+                    "args": [
+                        "--from",
+                        "iflow-mcp_searxng-simple-mcp",
+                        "searxng-simple-mcp"
+                    ]
+                },
+                "clinical-trials": {
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "xiaoyibao-clinical-trials"
+                    ]
+                }
+            }
+        }
+    
