@@ -1838,19 +1838,100 @@ skill-report-genie/
 - [ ] 实现问诊清单生成（echart可视化）
 - [ ] PDF导出（reportlab/weasyprint）
 
-### Phase 4: 临床知识增强（Week 4）
-- [ ] 集成clinical_trials MCP
-- [ ] 集成memos长期记忆
-- [ ] 实现临床增强模块（clinical_enhancer.py）
-- [ ] 用户授权和脱敏流程
+### Phase 4: 科普教育与医学可视化（Week 4）
 
-### Phase 5: 可选增强（Week 5）
+**核心原则：LLM + 智能体 + 结构化数据**
+
+```
+结构化数据 (Phase 1-3输出)
+    ↓
+[智能体 + 系统提示词]
+    ↓
+Claude API调用
+    ↓
+患者友好的Markdown文本 (科普+可视化)
+```
+
+实现：
+- [ ] **PopularScienceAgent**：LLM驱动的科普教育
+  - [ ] 系统提示词定义（医学科普专家角色）
+  - [ ] 基因科普：generate_genetic_education()
+  - [ ] 病理科普：generate_pathology_education()
+  - [ ] 治疗科普：generate_treatment_education()
+  - [ ] 预后科普：generate_prognosis_education()
+  - [ ] 试验科普：generate_clinical_trial_education()
+  - [ ] 自我管理：generate_patient_self_care()
+  - [ ] 完整报告：generate_comprehensive_education_report()
+
+- [ ] **VisualizationAgent**：LLM驱动的医学可视化
+  - [ ] 系统提示词定义（医学信息设计师角色）
+  - [ ] 风险可视化：design_risk_profile_visualization()
+  - [ ] 基因表格：design_genetic_features_table()
+  - [ ] 时间线：design_treatment_timeline()
+  - [ ] 趋势叙述：design_marker_trend_narrative()
+  - [ ] 速览卡：design_patient_summary_card()
+  - [ ] 问诊清单：design_consultation_checklist()
+  - [ ] 并发症表：design_complication_risk_table()
+  - [ ] 完整报告：generate_comprehensive_visualization_report()
+
+- [ ] 输出格式规范（Markdown）
+- [ ] 集成quickchart-mcp生成图表
+- [ ] 缓存机制避免重复调用
+
+### Phase 5: Web展示与隐私保护（Week 5）
+
+**核心需求**：通过Web UI安全展示病情报告，并提供密码保护
+
+```
+报告生成 (Phase 1-4)
+    ↓
+[Web发布模块 - Phase 5]
+├─ edgeone-pages-mcp集成
+├─ 密码/身份验证层
+├─ 响应式Web UI设计
+└─ 隐私数据脱敏处理
+    ↓
+患者可访问的Web报告
+└─ 安全、易读、隐私保护
+```
+
+实现清单：
+- [ ] **edgeone-pages-mcp集成**
+  - [ ] 将报告部署到Tencent EdgeOne Pages
+  - [ ] 生成患者专属的访问URL
+  - [ ] 自动部署流程
+
+- [ ] **密码/身份认证**
+  - [ ] 为每个患者生成随机密码（可自定义）
+  - [ ] 前端密码验证页面（不涉及后端存储）
+  - [ ] 密码安全传递机制（建议邮件/SMS）
+  - [ ] Session管理（24小时过期）
+
+- [ ] **Web UI设计**
+  - [ ] 响应式布局（支持手机/平板/桌面）
+  - [ ] 病情报告完整版渲染（Markdown转HTML）
+  - [ ] 问诊清单交互式展示
+  - [ ] 科普报告和可视化作为选项卡
+  - [ ] 打印友好的样式
+
+- [ ] **隐私保护**
+  - [ ] 脱敏数据展示（patient_id而非真实姓名）
+  - [ ] 不记录访问日志（或加密存储）
+  - [ ] 支持导出PDF（带密码保护）
+  - [ ] 自动过期机制（可配置的有效期）
+
+- [ ] **部署与配置**
+  - [ ] mcp.json中配置edgeone-pages-mcp
+  - [ ] 环境变量配置（API密钥、部署路径）
+  - [ ] 自动化部署脚本
+
+### Phase 6: 可选增强（Week 6）
 - [ ] DICOM处理（pydicom + PIL）
 - [ ] OCR集成（paddleOCR/mineru）
 - [ ] pubmed_llm_server集成
 - [ ] metaso知识补充集成
 
-### Phase 6: 测试与文档（Week 6）
+### Phase 7: 测试与文档（Week 7）
 - [ ] 单元测试
 - [ ] 集成测试
 - [ ] 隐私安全审计
@@ -1998,6 +2079,208 @@ skill-report-genie/
 - [ ] Claude API（现有）
 - [ ] clinical_trials API 2.0
 - [ ] PubMed API（可选）
+
+---
+
+## 十之一、报告输出优先级与结构定义
+
+### 优先级定义
+
+**最高优先级（必须输出）**：
+1. **病情报告_完整版.md** (Phase 2)
+   - 医学专业版，遵循标准病例模板（8部分）
+   - 目标用户：医疗专业人士、医生
+   - 内容：诊断、基因、病理、治疗、影像、标志物、风险、随访
+   - 部署：Web展示（带密码保护）+ PDF导出
+
+2. **问诊清单.md** (Phase 2)
+   - 结构化问题列表，按优先级分类
+   - 目标用户：患者、医生
+   - 内容：高/中/低优先级问题 + 关注点
+   - 部署：Web展示 + 打印友好的PDF
+
+**次要优先级（作为附件）**：
+3. **患者科普版报告.md** (Phase 4)
+   - 科普教育版，用简单语言解释
+   - 目标用户：患者、患者家属
+   - 内容：基因、病理、治疗、预后、临床试验、自我管理
+   - 部署：Web展示（作为可选项卡）
+
+4. **医学可视化报告.md** (Phase 4)
+   - 可视化展示，包含emoji和表格
+   - 目标用户：患者、医生（快速浏览）
+   - 内容：速览卡、风险可视化、基因表格、时间线、清单
+   - 部署：Web展示（作为可选项卡）
+
+5. **肿瘤标志物趋势图.html** (Phase 3/5)
+   - quickchart生成的交互式图表
+   - 部署：Web展示 + 嵌入在完整报告中
+
+### 报告包最终结构
+
+```
+_reports/
+├── 【优先级1】病情报告_完整版_2026-01-19.md
+│   └─ 内容：医学专业版（8部分）
+│   └─ 用途：医生决策、医学记录
+│   └─ 部署：Web主体 + PDF导出
+│
+├── 【优先级1】问诊清单_2026-01-19.md
+│   └─ 内容：结构化问题清单
+│   └─ 用途：患者准备、医患沟通
+│   └─ 部署：Web主体 + 打印
+│
+├── 【优先级2】患者科普版报告_2026-01-19.md
+│   └─ 内容：科普教育版
+│   └─ 用途：患者教育、家属理解
+│   └─ 部署：Web附件选项卡
+│
+├── 【优先级2】医学可视化报告_2026-01-19.md
+│   └─ 内容：可视化快速浏览
+│   └─ 用途：信息速览、视觉理解
+│   └─ 部署：Web附件选项卡
+│
+├── 【优先级3】肿瘤标志物趋势_2026-01-19.html
+│   └─ 内容：交互式图表
+│   └─ 部署：嵌入报告 + 单独链接
+│
+└── index.md
+    └─ 报告导航和目录
+```
+
+---
+
+## 十一之一、关键架构原则：LLM + 智能体 + 结构化数据
+
+### 原则定义
+
+Skill Report Genie采用以下**核心架构原则**来处理内容生成：
+
+```
+【数据层】
+结构化病情数据
+├─ Phase 1: JSON存储 (patient_master.json)
+├─ Phase 2: 病理特征 (pathology_features)
+├─ Phase 2: 标志物数据 (marker_data)
+├─ Phase 3: 基因特征 (genetic_features)
+├─ Phase 3: 临床试验 (matched_trials)
+└─ Phase 3: 风险评级 (risk_profile)
+    ↓
+【智能体层】
+Agent = 系统提示词 + 数据 + Claude API
+├─ PopularScienceAgent (科普专家)
+│  └─ 输出：患者友好的Markdown科普内容
+├─ VisualizationAgent (设计师)
+│  └─ 输出：患者友好的可视化Markdown
+├─ 其他Agent (可扩展)
+│  └─ 输出：其他形式的内容
+    ↓
+【输出层】
+Markdown格式的内容
+├─ .md 文件（文本）
+├─ .html 文件（网页）
+├─ .pdf 文件（打印）
+└─ JSON导出（数据）
+```
+
+### 为什么采用这个原则
+
+| 问题 | 方案A：硬编码词汇表 | 方案B：LLM驱动（✅选择） |
+|------|-------------------|----------------------|
+| 灵活性 | ❌ 词汇表固定，难以扩展 | ✅ LLM可根据上下文生成 |
+| 个性化 | ❌ 所有患者收到相同内容 | ✅ 可针对患者特征调整 |
+| 维护性 | ❌ 增加新术语需要代码改动 | ✅ 只需更新提示词 |
+| 质量 | ❌ 机械、单调 | ✅ 自然、生动 |
+| 成本 | ✅ 无API成本 | ⚠️ 需要API调用 |
+| 可控性 | ✅ 完全可控 | ⚠️ 需要提示词工程 |
+
+**结论**：采用LLM驱动方案，原因是：
+1. 医学知识不断更新，LLM自动适应
+2. 患者背景各异，LLM可个性化
+3. 科普的语气和例子需要灵活调整
+4. 长期维护成本更低
+
+### 实现细节
+
+#### 1. 系统提示词（System Prompt）
+定义智能体的**角色**和**约束**：
+
+```python
+# PopularScienceAgent
+SYSTEM_PROMPT = """你是一位资深的医学科普专家...
+- 用简单易懂的语言解释医学术语
+- 避免复杂医学专业术语
+- 使用类比和比喻帮助患者理解
+- 提供积极且现实的信息
+- 强调治疗的可能性和希望
+"""
+
+# VisualizationAgent  
+SYSTEM_PROMPT = """你是一位资深的医学信息设计师...
+- 将复杂数据转化为清晰的可视化
+- 使用emoji和符号帮助理解
+- 强调关键信息，简化复杂内容
+- 创建易于阅读的信息层级
+"""
+```
+
+#### 2. 用户提示词（User Prompt）
+包含**具体数据**和**任务指示**：
+
+```python
+# 模板
+user_prompt = f"""请根据以下基因检测结果，生成一份患者友好的科普说明：
+
+基因检测结果：
+{json.dumps(genetic_features, ensure_ascii=False, indent=2)}
+
+请生成一份科普文本，包含：
+1. 发现的关键基因突变及其含义
+2. 这些突变对治疗有什么影响
+3. 对预后的含义
+4. 是否有可靶向的突变
+5. 后续建议
+
+格式要求：
+- 使用## 作为主标题
+- 使用### 作为副标题
+- 包含相关emoji
+- 控制在800-1200字"""
+
+response = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=2000,
+    system=SYSTEM_PROMPT,
+    messages=[{"role": "user", "content": user_prompt}]
+)
+```
+
+#### 3. 结构化数据格式
+所有数据必须是JSON序列化的结构：
+
+```python
+genetic_features = {
+    'driver_genes': [
+        {'gene': 'KRAS', 'mutation': 'G12C', 'actionable': True}
+    ],
+    'tumor_suppressor_genes': [
+        {'gene': 'TP53', 'mutation': 'R248Q'}
+    ],
+    'actionable_mutations': ['KRAS-G12C'],
+    'risk_profile': '高危'
+}
+
+# 传递给智能体
+content = agent.generate_genetic_education(genetic_features)
+```
+
+### 关键约束
+
+1. **不要硬编码内容**：所有文本都应通过LLM生成
+2. **结构化输入**：数据必须是JSON格式，不是文本
+3. **明确的系统提示词**：定义角色和约束，确保输出质量
+4. **输出验证**：检查LLM输出是否包含敏感信息或错误
+5. **缓存机制**：相同数据不重复调用LLM（成本考虑）
 
 ---
 

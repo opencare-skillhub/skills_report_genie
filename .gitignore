@@ -48,9 +48,12 @@ patient_case/
 *.sqlite
 *.sqlite3
 
-# Environment
+# Environment and Secrets (DO NOT COMMIT)
 .env
 .env.local
+.env.*.local
+mcp.json
+mcp.*.json
 
 # Cache
 cache/
@@ -67,3 +70,28 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE Local Configuration
+.vscode/settings.json
+.idea/workspace.xml
+.idea/misc.xml
+
+# Sensitive Files
+*.pem
+*.key
+*.crt
+secrets.json
+credentials.json
+config.local.py
+
+# Patient Data (Do not commit real patient data)
+patient_reports/
+patient_data/
+reports/
+
+# Temporary Files
+*.tmp
+*.bak
+*.swp
+.env.swp
+.env.bak

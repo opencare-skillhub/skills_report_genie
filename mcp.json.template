@@ -1,0 +1,64 @@
+{
+    "mcpServers": {
+        "Quickchart-MCP-Server": {
+            "type": "sse",
+            "url": "https://mcp-api.tencent-cloud.com/sse/YOUR_QUICKCHART_ID"
+        },
+        "edgeone-pages-mcp": {
+            "type": "sse",
+            "url": "https://mcp-api.tencent-cloud.com/sse/YOUR_EDGEONE_ID"
+        },
+        "metaso": {
+            "url": "https://metaso.cn/api/mcp",
+            "headers": {
+                "Authorization": "Bearer YOUR_METASO_API_KEY"
+            }
+        },
+        "mcp-pubmed-llm-server": {
+            "command": "npx",
+            "args": [
+                "mcp-pubmed-llm-server"
+            ]
+        },
+        "pubmed-data-server": {
+            "command": "node",
+            "args": [
+                "path/to/mcp-pubmed-server/src/index.js"
+            ],
+            "cwd": "path/to/mcp-pubmed-server",
+            "env": {
+                "PUBMED_API_KEY": "${PUBMED_API_KEY}",
+                "PUBMED_EMAIL": "${PUBMED_EMAIL}",
+                "ABSTRACT_MODE": "deep",
+                "FULLTEXT_MODE": "enabled"
+            }
+        },
+        "memos-api-mcp": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@memtensor/memos-api-mcp@latest"
+            ],
+            "env": {
+                "MEMOS_API_KEY": "${MEMOS_API_KEY}",
+                "MEMOS_CHANNEL": "MEMOS",
+                "MEMOS_USER_ID": "${MEMOS_USER_ID}"
+            }
+        },
+        "searxng-simple-mcp": {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "iflow-mcp_searxng-simple-mcp",
+                "searxng-simple-mcp"
+            ]
+        },
+        "clinical-trials": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "xiaoyibao-clinical-trials"
+            ]
+        }
+    }
+}
