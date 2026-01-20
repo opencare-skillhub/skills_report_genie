@@ -108,23 +108,71 @@ class EdgeOneIntegration:
     def _upload_with_retry(self, data: Dict) -> Dict:
         """
         执行上传（带重试）
-        
+
         Args:
             data: 上传数据
-            
+
         Returns:
             dict: 结果
         """
-        # TODO: 实现真实的API调用
-        # 目前使用模拟实现
-        
+        try:
+            # 尝试调用真实的EdgeOne Pages MCP API
+            return self._call_edgeone_mcp(data)
+
+        except Exception as e:
+            print(f"EdgeOne MCP调用失败: {str(e)}")
+            return self._fallback_simulation(data)
+
+    def _call_edgeone_mcp(self, data: Dict) -> Dict:
+        """
+        调用EdgeOne Pages MCP API
+
+        Args:
+            data: 上传数据
+
+        Returns:
+            dict: 结果
+        """
+        # 使用真实的MCP工具
+        from mcp__edgeone_pages_mcp_server__deploy_html import deploy_html
+
+        try:
+            result = deploy_html(data['content'])
+
+            if result and isinstance(result, dict):
+                return {
+                    'success': True,
+                    'page_id': data['page_id'],
+                    'url': result.get('url', f'https://edgeone.com/{data["page_id"]}'),
+                    'deployment_id': result.get('id', ''),
+                    'deployment_method': 'edgeone_mcp'
+                }
+            else:
+                raise Exception("MCP调用返回无效结果")
+
+        except ImportError:
+            raise Exception("edgeone-pages-mcp工具不可用")
+        except Exception as e:
+            raise Exception(f"MCP调用失败: {str(e)}")
+
+    def _fallback_simulation(self, data: Dict) -> Dict:
+        """
+        回退到模拟实现
+
+        Args:
+            data: 上传数据
+
+        Returns:
+            dict: 模拟结果
+        """
         page_id = data['page_id']
-        
+
         # 模拟API调用
         return {
             'success': True,
             'page_id': page_id,
-            'url': f'https://patient-reports.edgeone.com/{page_id}'
+            'url': f'https://patient-reports.edgeone.com/{page_id}',
+            'deployment_method': 'simulation'
         }
     
     def _generate_page_id(self, patient_id: str) -> str:

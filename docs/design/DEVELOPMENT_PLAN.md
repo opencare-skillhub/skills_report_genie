@@ -211,7 +211,248 @@ CA72-4：
 
 ---
 
-## 二、完整工作流程
+## 二、核心技术要求：内容提取与智能分类
+
+### 2.0 内容提取架构（必需功能）
+
+**重要说明**：文件分类**必须基于内容提取**，而不仅仅是文件名。这是核心功能要求。
+
+#### 2.0.1 为什么需要内容提取
+
+**实际场景问题**：
+- 患者上传的文件多为手机拍照：`IMG_0073.PNG`、`IMG_1104.JPG`
+- 文件名无意义，无法通过文件名判断内容
+- 扫描件、照片需要OCR识别文字
+- PDF可能包含图片或文本，需要智能处理
+
+**错误的做法**（仅基于文件名）：
+```python
+# ❌ 这样无法处理 IMG_0073.PNG（实际是病理报告）
+if "病理" in filename:
+    category = "病理报告"
+```
+
+**正确的做法**（基于内容）：
+```python
+# ✅ 读取文件内容，识别关键词
+content = extract_content(file_path)  # OCR或文本提取
+if "病理诊断" in content or "免疫组化" in content:
+    category = "病理报告"
+```
+
+#### 2.0.2 内容提取模块设计
+
+**模块1：内容提取器** (`src/file_handler/content_extractor.py`)
+
+```python
+class ContentExtractor:
+    """统一的内容提取接口"""
+    
+    def extract(self, file_path: str) -> Dict[str, Any]:
+        """
+        提取文件内容
+        
+        Returns:
+            {
+                "text": "提取的文本内容",
+                "metadata": {
+                    "file_type": "pdf|image|word|excel",
+                    "extraction_method": "ocr|text|parsing",
+                    "confidence": 0.95,
+                    "language": "zh"
+                },
+                "raw_data": {}  # 原始数据（如Excel的DataFrame）
+            }
+        """
+        pass
+    
+    def extract_pdf(self, file_path: str) -> str:
+        """PDF文本提取（pypdf + OCR fallback）"""
+        pass
+    
+    def extract_image(self, file_path: str) -> str:
+        """图片OCR识别（paddleOCR）"""
+        pass
+    
+    def extract_word(self, file_path: str) -> str:
+        """Word文档解析（python-docx）"""
+        pass
+    
+    def extract_excel(self, file_path: str) -> Dict:
+        """Excel数据读取（openpyxl）"""
+        pass
+```
+
+**支持的文件类型**：
+| 文件类型 | 提取方法 | 工具库 | 优先级 |
+|---------|---------|--------|--------|
+| PDF（文本） | 文本提取 | pypdf | ✅ 必需 |
+| PDF（扫描件） | OCR | paddleOCR | ✅ 必需 |
+| 图片（JPG/PNG/HEIC） | OCR | paddleOCR | ✅ 必需 |
+| Word（.docx） | 文档解析 | python-docx | ✅ 必需 |
+| Excel（.xlsx） | 数据读取 | openpyxl | ✅ 必需 |
+| DICOM | 医学影像 | pydicom | ⭕ 可选 |
+
+**模块2：内容分类器** (`src/file_handler/content_classifier.py`)
+
+```python
+class ContentClassifier:
+    """基于内容的智能分类器"""
+    
+    def classify(self, content: str, filename: str) -> ClassificationResult:
+        """
+        综合内容和文件名进行分类
+        
+        Args:
+            content: 提取的文本内容
+            filename: 文件名（辅助判断）
+        
+        Returns:
+            ClassificationResult(
+                category=FileCategory.LAB_REPORTS,
+                confidence=0.95,
+                reasoning="检测到关键词：CA19-9、肿瘤标志物",
+                keywords_found=["CA19-9", "肿瘤标志物", "检验报告"]
+            )
+        """
+        pass
+    
+    def _extract_keywords(self, content: str) -> List[str]:
+        """从内容中提取医疗关键词"""
+        pass
+    
+    def _calculate_confidence(self, keywords: List[str], category: FileCategory) -> float:
+        """计算分类置信度"""
+        pass
+```
+
+**分类规则（基于内容关键词）**：
+
+```python
+CONTENT_CLASSIFICATION_RULES = {
+    FileCategory.LAB_REPORTS: {
+        "keywords": [
+            "检验报告", "化验单", "血液检查", "肿瘤标志物",
+            "CA19-9", "CA50", "CA125", "CEA",
+            "白细胞", "血红蛋白", "血小板",
+            "肝功能", "肾功能", "电解质"
+        ],
+        "weight": 1.0
+    },
+    FileCategory.IMAGING: {
+        "keywords": [
+            "影像报告", "CT", "MRI", "超声", "X光",
+            "增强扫描", "平扫", "DICOM",
+            "病灶", "肿块", "占位", "转移"
+        ],
+        "weight": 1.0
+    },
+    FileCategory.MEDICAL_RECORDS: {
+        "keywords": [
+            "病历", "病史", "主诉", "现病史", "既往史",
+            "诊断", "医嘱", "查房记录", "出院小结"
+        ],
+        "weight": 0.9
+    },
+    # ... 其他分类
+}
+```
+
+**模块3：文件类型JSON生成器**
+
+```python
+class FileTypeRecorder:
+    """记录文件分类结果到JSON"""
+    
+    def save_classification(self, results: List[ClassificationResult]):
+        """
+        保存分类结果到 file_types.json
+        
+        格式：
+        {
+            "IMG_0073.PNG": {
+                "category": "医疗诊疗/检查检测报告",
+                "confidence": 0.95,
+                "keywords_found": ["CA19-9", "肿瘤标志物"],
+                "extraction_method": "ocr",
+                "classified_at": "2026-01-19T15:30:00"
+            },
+            "病历.pdf": {
+                "category": "医疗诊疗/病历",
+                "confidence": 0.88,
+                "keywords_found": ["主诉", "现病史"],
+                "extraction_method": "text",
+                "classified_at": "2026-01-19T15:30:05"
+            }
+        }
+        """
+        pass
+```
+
+#### 2.0.3 集成到现有扫描器
+
+**更新 `scanner.py`**：
+
+```python
+class FileScanner:
+    def __init__(self, base_path: str = "."):
+        self.base_path = base_path
+        self.content_extractor = ContentExtractor()  # 新增
+        self.content_classifier = ContentClassifier()  # 新增
+        self.file_type_recorder = FileTypeRecorder()  # 新增
+    
+    def _classify_file(self, file_path: str, file_name: str) -> Tuple[FileCategory, float]:
+        """改进的分类方法：内容优先，文件名辅助"""
+        
+        # 1. 提取文件内容
+        try:
+            content_data = self.content_extractor.extract(file_path)
+            content = content_data["text"]
+        except Exception as e:
+            print(f"⚠️  内容提取失败 {file_name}: {e}")
+            # Fallback到文件名分类
+            return self._classify_by_filename(file_path, file_name)
+        
+        # 2. 基于内容分类
+        result = self.content_classifier.classify(content, file_name)
+        
+        # 3. 记录分类结果
+        self.file_type_recorder.record(file_name, result)
+        
+        return (result.category, result.confidence)
+```
+
+#### 2.0.4 实现优先级
+
+**Phase 1（必需）**：
+1. ✅ 实现 `ContentExtractor` - PDF文本提取
+2. ✅ 实现 `ContentExtractor` - 图片OCR（paddleOCR）
+3. ✅ 实现 `ContentClassifier` - 基于关键词的分类
+4. ✅ 生成 `file_types.json`
+
+**Phase 2（必需）**：
+5. ✅ 集成到 `scanner.py`
+6. ✅ Word/Excel支持
+7. ✅ 测试验证（使用 `/Users/qinxiaoqiang/Downloads/report_mess`）
+
+**Phase 3（可选优化）**：
+8. ⭕ LLM辅助分类（低置信度文件）
+9. ⭕ DICOM支持
+10. ⭕ 多语言支持
+
+#### 2.0.5 依赖库安装
+
+```bash
+# 必需依赖
+pip install pypdf python-docx openpyxl paddlepaddle paddleocr
+
+# 可选依赖
+pip install mineru pydicom pillow
+```
+
+---
+
+## 三、完整工作流程
 
 ### 2.1 初诊流程
 

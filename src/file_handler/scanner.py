@@ -14,27 +14,18 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
 
+# 导入文件分类枚举（独立模块，避免循环导入）
+from src.file_handler.file_category import FileCategory
 
-class FileCategory(Enum):
-    """文件分类枚举"""
-    
-    # 医疗诊疗
-    MEDICAL_RECORDS = "医疗诊疗/病历"
-    IMAGING = "医疗诊疗/影像"
-    LAB_REPORTS = "医疗诊疗/检查检测报告"
-    PRESCRIPTIONS = "医疗诊疗/处方用药"
-    
-    # 营养管理
-    NUTRITION = "营养管理"
-    
-    # 心理支持
-    PSYCHOLOGY = "心理支持管理"
-    
-    # 并发症管理
-    COMPLICATIONS = "并发症管理"
-    
-    # 待确认
-    UNCONFIRMED = "待确认"
+# 内容提取和分类模块
+try:
+    from src.file_handler.content_extractor import ContentExtractor, ExtractionResult
+    from src.file_handler.content_classifier import ContentClassifier, ClassificationResult
+    from src.file_handler.file_type_recorder import FileTypeRecorder
+    CONTENT_EXTRACTION_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  内容提取模块未加载: {e}")
+    CONTENT_EXTRACTION_AVAILABLE = False
 
 
 @dataclass
@@ -116,15 +107,34 @@ class FileScanner:
         }
     ]
     
-    def __init__(self, base_path: str = "."):
+    def __init__(self, base_path: str = ".", use_content_extraction: bool = True):
         """
         初始化文件扫描器
         
         Args:
             base_path: 扫描的基础路径
+            use_content_extraction: 是否启用内容提取（默认True）
         """
         self.base_path = base_path
         self.scanned_files: List[ScannedFile] = []
+        self.use_content_extraction = use_content_extraction and CONTENT_EXTRACTION_AVAILABLE
+        
+        # 初始化内容提取组件
+        if self.use_content_extraction:
+            try:
+                self.content_extractor = ContentExtractor()
+                self.content_classifier = ContentClassifier()
+                self.file_type_recorder = FileTypeRecorder(base_path)
+                print("✓ 内容提取功能已启用")
+            except Exception as e:
+                print(f"⚠️  内容提取初始化失败: {e}")
+                self.use_content_extraction = False
+        else:
+            self.content_extractor = None
+            self.content_classifier = None
+            self.file_type_recorder = None
+            if not CONTENT_EXTRACTION_AVAILABLE:
+                print("⚠️  内容提取功能不可用（缺少依赖）")
     
     @staticmethod
     def _calculate_file_hash(file_path: str) -> str:
@@ -167,7 +177,53 @@ class FileScanner:
         return os.path.splitext(name)[1].lstrip('.').lower()
     
     def _classify_file(self, file_path: str, file_name: str) -> Tuple[FileCategory, float]:
-        """根据文件名和扩展名分类文件
+        """根据文件内容和文件名分类文件
+        
+        优先使用内容提取进行分类，如果不可用则回退到文件名分类
+        
+        Args:
+            file_path: 完整文件路径
+            file_name: 文件名
+            
+        Returns:
+            Tuple: (分类, 置信度)
+        """
+        # 如果启用了内容提取，优先使用
+        if self.use_content_extraction:
+            try:
+                # 1. 提取文件内容
+                extraction_result = self.content_extractor.extract(file_path)
+                
+                # 2. 基于内容分类
+                if extraction_result.text and not extraction_result.error:
+                    classification_result = self.content_classifier.classify(
+                        extraction_result.text,
+                        file_name
+                    )
+                    
+                    # 记录分类结果
+                    if self.file_type_recorder:
+                        self.file_type_recorder.record(
+                            file_name,
+                            classification_result,
+                            extraction_result.extraction_method.value
+                        )
+                    
+                    return (classification_result.category, classification_result.confidence)
+                else:
+                    # 内容提取失败，回退到文件名分类
+                    print(f"⚠️  内容提取失败 {file_name}: {extraction_result.error}")
+                    return self._classify_by_filename(file_path, file_name)
+                    
+            except Exception as e:
+                print(f"⚠️  分类失败 {file_name}: {e}")
+                return self._classify_by_filename(file_path, file_name)
+        else:
+            # 内容提取不可用，使用文件名分类
+            return self._classify_by_filename(file_path, file_name)
+    
+    def _classify_by_filename(self, file_path: str, file_name: str) -> Tuple[FileCategory, float]:
+        """根据文件名和扩展名分类文件（原有逻辑）
         
         按优先级规则进行分类，优先级高的规则先匹配
         
@@ -268,6 +324,11 @@ class FileScanner:
                 except Exception as e:
                     print(f"⚠️  扫描文件失败 {file_path}: {e}")
                     continue
+        
+        # 保存文件类型记录
+        if self.use_content_extraction and self.file_type_recorder:
+            self.file_type_recorder.save()
+            self.file_type_recorder.print_summary()
         
         return self.scanned_files
     

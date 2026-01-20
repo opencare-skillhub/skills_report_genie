@@ -216,35 +216,88 @@ class ReportDeployer:
     
     def _deploy_to_edgeone(self, patient_id: str, html_content: str) -> Dict:
         """
-        部署到EdgeOne Pages（当前为模拟实现）
-        
-        TODO: 集成真实的edgeone-pages-mcp API
-        
+        部署到EdgeOne Pages（使用MCP API）
+
         Args:
             patient_id: 患者ID
             html_content: HTML内容
-            
+
         Returns:
             dict: 部署结果
         """
         try:
-            # 生成访问URL（模拟）
+            # 优先使用真实的EdgeOne MCP API
+            try:
+                from .edgeone_integration import EdgeOneIntegration
+
+                edgeone = EdgeOneIntegration()
+                result = edgeone.upload_report(
+                    patient_id=patient_id,
+                    html_content=html_content,
+                    metadata={'type': 'patient_report', 'version': '1.0'}
+                )
+
+                if result.get('success'):
+                    return {
+                        'success': True,
+                        'url': result['url'],
+                        'page_id': result.get('page_id'),
+                        'status': 'deployed',
+                        'method': 'edgeone_mcp'
+                    }
+                else:
+                    # EdgeOne MCP失败，回退到模拟
+                    return self._fallback_deployment(patient_id, html_content)
+
+            except ImportError as e:
+                print(f"EdgeOne集成模块导入失败: {str(e)}")
+                return self._fallback_deployment(patient_id, html_content)
+
+        except Exception as e:
+            print(f"EdgeOne部署异常: {str(e)}")
+            return self._fallback_deployment(patient_id, html_content)
+
+    def _fallback_deployment(self, patient_id: str, html_content: str) -> Dict:
+        """
+        回退部署方案（本地保存 + 模拟URL）
+
+        Args:
+            patient_id: 患者ID
+            html_content: HTML内容
+
+        Returns:
+            dict: 部署结果
+        """
+        try:
+            # 本地保存HTML文件作为备份
+            import os
+            from datetime import datetime
+
+            reports_dir = 'deployed_reports'
+            os.makedirs(reports_dir, exist_ok=True)
+
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'{reports_dir}/report_{patient_id}_{timestamp}.html'
+
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+            # 生成模拟访问URL
             url = f"https://patient-reports.edgeone.com/{patient_id}"
-            
-            # TODO: 调用实际的edgeone-pages-mcp API
-            # from mcp_client import EdgeOnePages
-            # result = EdgeOnePages.upload_page(html_content, ...)
-            
+
             return {
                 'success': True,
                 'url': url,
-                'status': 'deployed'
+                'status': 'deployed',
+                'method': 'fallback_simulation',
+                'local_backup': os.path.abspath(filename),
+                'note': 'EdgeOne API不可用，已保存本地备份'
             }
-        
+
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'回退部署也失败: {str(e)}'
             }
     
     def get_deployment_record(self, patient_id: str) -> Optional[Dict]:

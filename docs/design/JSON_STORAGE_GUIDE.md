@@ -2,7 +2,9 @@
 
 ## 概览
 
-本Skill采用**JSON + 版本控制 + 时间戳**作为主要数据存储方案，完全本地存储，适配非技术患者，隐私安全第一。
+本Skill采用**JSON + 版本控制 + 时间戳 + 文件索引日志**作为主要数据存储方案，完全本地存储，适配非技术患者，隐私安全第一。
+
+**核心改进** (v2.1)：使用路径日志替代原始文件副本，支持增量处理和自动去重。详见 [FILE_INDEX_AND_EXTRACTION.md](FILE_INDEX_AND_EXTRACTION.md)
 
 ---
 
@@ -23,10 +25,11 @@
 - 支持复诊更新和对比
 - 完整的演变历史
 
-✅ **增量识别**
+✅ **增量识别 + 路径日志**
 - 通过hash检测新增/重复文件
 - 通过mtime检测文件变更
-- 避免重复处理
+- 路径记录在file_index.json，避免重复存储
+- 避免重复处理，支持增量更新
 
 ---
 
@@ -35,10 +38,17 @@
 ```
 patient_case/
 ├── _metadata/                          # 系统元数据
-│   ├── patient_master_v1_2024-01-15.json
-│   ├── patient_master_v2_2024-06-20.json   # 版本历史
-│   ├── processing_log_2024-01-15.json
-│   └── processing_log_2024-06-20.json
+│   ├── patient_master.json             # 主病情（增量维护）
+│   ├── file_index.json                 # ★新增：文件路径索引日志
+│   ├── processing_status.json          # ★新增：增量处理标记
+│   ├── extraction_log.json             # 提取记录
+│   └── processing_log.json             # 处理日志
+│
+├── extracted/                          # ★新增：所有提取的JSON（按时间戳）
+│   ├── report_20260120.json
+│   ├── ct_image_20260115.json
+│   ├── blood_test_20260110.json
+│   └── ...
 │
 ├── _reports/                           # AI生成的输出报告
 │   ├── disease_report_2024-06-20.md
@@ -46,16 +56,9 @@ patient_case/
 │   └── ...
 │
 ├── [11个顶级目录...]
-│   └── [具体文件和数据JSON]
+│   └── [原始文件仅1份，不重复存储]
 │
-└── _version_history/                   # 版本历史存档（可选）
-    ├── patient_master/
-    │   ├── v1_2024-01-15.json
-    │   ├── v2_2024-06-20.json
-    │   └── v3_2024-12-15.json
-    └── markers_history/
-        ├── v1_2024-01-15.json
-        └── v2_2024-06-20.json
+└── [其他存档目录]
 ```
 
 ---

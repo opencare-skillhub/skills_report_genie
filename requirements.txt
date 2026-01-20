@@ -1,4 +1,17 @@
+# Core dependencies
 anthropic>=0.21.0
 pytest>=7.4.0
 pydantic>=2.0.0
 python-magic>=0.4.0
+
+# Content extraction (REQUIRED)
+paddlepaddle>=2.5.0
+paddleocr>=2.7.0
+pypdf>=3.17.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+Pillow>=10.0.0
+
+# Optional enhancements
+# mineru  # Advanced OCR for complex layouts
+# pydicom  # DICOM medical imaging support
